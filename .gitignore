@@ -54,7 +54,7 @@ results/
 # Data Files
 # ----------------------------------------
 # exclude raw and generated training data
-data/*.csv
+# data/*.csv
 data/*.json
 *.zip
 *.tar.gz
