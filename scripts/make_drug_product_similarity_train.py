@@ -7,11 +7,11 @@ import random
 # -----------------------------
 # 경로 설정
 # -----------------------------
-base_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(base_dir, "resources")
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data_dir = os.path.join(base_dir, "data")
 
-input_path = os.path.join(resource_dir, "drug_data_20_per_product_type.csv")
-output_path = os.path.join(resource_dir, "drug_product_similarity_train.csv")
+input_path = os.path.join(data_dir, "drug_data_20_per_product_type.csv")
+output_path = os.path.join(data_dir, "drug_product_similarity_train.csv")
 
 
 # -----------------------------

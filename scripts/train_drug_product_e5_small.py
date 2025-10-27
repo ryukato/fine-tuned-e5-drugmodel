@@ -3,6 +3,7 @@ import os
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
+from sentence_transformers import losses
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, InputExample, util
 import pandas as pd
@@ -10,15 +11,18 @@ import pandas as pd
 # ----------------------------------------------------------------------
 # 1. 경로 설정
 # ----------------------------------------------------------------------
-base_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(base_dir, "resources")
-train_csv = os.path.join(resource_dir, "drug_product_similarity_train.csv")
+# 현재 파일 기준 한 단계 위 (scripts → root)
+base_dir = os.path.dirname(os.path.abspath(__file__))  # 루트에서 실행 시에도 안전
+if os.path.basename(base_dir) == "scripts":
+    base_dir = os.path.dirname(base_dir)
+
+data_dir = os.path.join(base_dir, "data")
+train_csv = os.path.join(data_dir, "drug_product_similarity_train.csv")
 
 base_model_path = os.path.join(base_dir, "model", "fine_tuned_e5_small_drugtype")
-output_model_path = os.path.join(
-    base_dir, "model", "fine_tuned_e5_small_drugproduct_accum"
-)
+output_model_path = os.path.join(base_dir, "model", "fine_tuned_e5_small_drugproduct_accum")
 os.makedirs(output_model_path, exist_ok=True)
+print(f"train_csv={train_csv}, output_model_path={output_model_path}")
 
 # ----------------------------------------------------------------------
 # 2. 환경 설정
@@ -42,9 +46,27 @@ model.max_seq_length = 256
 # 4. 데이터 로드 및 토크나이즈
 # ----------------------------------------------------------------------
 df = pd.read_csv(train_csv)
-df = df.sample(3000, random_state=42)
-print(f"✅ Loaded {len(df)} samples for training")
+size = len(df)
 
+# 안전한 샘플링
+if size > 3000:
+    df = df.sample(3000, random_state=42)
+    size = len(df)
+    print(f"📉 Sampled 3000 rows (original={len(df)}).")
+else:
+    print(f"⚠️ Data smaller than 3000 rows — using full dataset ({size} rows).")
+
+# ✅ 데이터 크기별 epoch 설정 (명시적, 캐시 방지)
+if size <= 1000:
+    epochs = 1
+elif size <= 3000:
+    epochs = 1
+elif size <= 10000:
+    epochs = 2
+else:
+    epochs = 3
+
+print(f"✅ Loaded {size} samples for training (epochs={epochs})")
 
 def collate_fn(batch):
     texts1 = [ex.texts[0] for ex in batch]
@@ -71,27 +93,30 @@ train_dataloader = DataLoader(
 # ----------------------------------------------------------------------
 # 5. Loss, Optimizer
 # ----------------------------------------------------------------------
+train_loss = losses.CosineSimilarityLoss(model)
 optimizer = optim.AdamW(model.parameters(), lr=2e-5)
-epochs = 3
 accum_steps = 4
 
 # ----------------------------------------------------------------------
 # 6. 학습 루프
 # ----------------------------------------------------------------------
+from torch.nn import functional as F
 model.train()
 for epoch in range(epochs):
     total_loss = 0
     optimizer.zero_grad()
 
     print(f"\n🚀 Epoch {epoch+1}/{epochs} 시작")
-    for step, (features1, features2, labels) in enumerate(tqdm(train_dataloader)):
+    for step, (features1, features2, labels) in enumerate(tqdm(train_dataloader, leave=False)):
         features1 = {k: v.to(device) for k, v in features1.items()}
         features2 = {k: v.to(device) for k, v in features2.items()}
         labels = labels.to(device)
 
-        # ✅ sentence embedding 추출
         emb1 = model.forward(features1)["sentence_embedding"]
         emb2 = model.forward(features2)["sentence_embedding"]
+
+        emb1 = F.normalize(emb1)
+        emb2 = F.normalize(emb2)
 
         cos_sim = torch.cosine_similarity(emb1, emb2)
         loss = torch.nn.functional.mse_loss(cos_sim, labels)
@@ -103,9 +128,8 @@ for epoch in range(epochs):
             optimizer.step()
             optimizer.zero_grad()
 
-    print(
-        f"✅ Epoch {epoch+1} 완료 | 평균 손실: {total_loss / len(train_dataloader):.6f}"
-    )
+    avg_loss = total_loss / len(train_dataloader)
+    print(f"✅ Epoch {epoch+1} 완료 | 평균 손실: {avg_loss:.6f}")
 
 # ----------------------------------------------------------------------
 # 7. 모델 저장

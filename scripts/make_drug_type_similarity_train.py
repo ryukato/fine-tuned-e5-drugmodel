@@ -9,9 +9,9 @@ np.random.seed(42)
 
 # ✅ 현재 스크립트 파일 기준으로 CSV 경로 계산
 # 경로 설정
-base_dir = os.path.dirname(os.path.abspath(__file__))
-resource_dir = os.path.join(base_dir, "resources")
-csv_path = os.path.join(resource_dir, "drug_type_def_list.csv")
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data_dir = os.path.join(base_dir, "data")
+csv_path = os.path.join(data_dir, "drug_type_def_list.csv")
 
 if not os.path.exists(csv_path):
     raise FileNotFoundError(f"CSV 파일을 찾을 수 없습니다: {csv_path}")
@@ -45,7 +45,7 @@ for _, row in df.iterrows():
     desc = str(row["definition"]).strip()
 
     for q in generate_queries(type_name):
-        rows.append({"text1": q, "text2": desc, "label": 1.0})
+        rows.append({"query": q, "context": desc, "label": 1.0})
 
 # ✅ Negative pairs (비유사 pair)
 for _, row in df.iterrows():
@@ -54,13 +54,13 @@ for _, row in df.iterrows():
     if not neg_desc_candidates:
         continue
     neg_desc = random.choice(neg_desc_candidates)
-    rows.append({"text1": type_name, "text2": neg_desc, "label": 0.0})
+    rows.append({"query": type_name, "context": neg_desc, "label": 0.0})
 
 # ✅ 섞기
 random.shuffle(rows)
 
 # ✅ 저장
-out_path = os.path.join(resource_dir, "drug_type_similarity_train.csv")
+out_path = os.path.join(data_dir, "drug_type_similarity_train.csv")
 pd.DataFrame(rows).to_csv(out_path, index=False)
 
 print(f"✅ 학습용 CSV 생성 완료 → {out_path}")

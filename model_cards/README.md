@@ -1,18 +1,36 @@
+---
+language: ko
+license: mit
+tags:
+  - sentence-transformers
+  - semantic-search
+  - medical
+  - pharmaceutical
+  - korean
+datasets:
+  - drug_product_similarity_train
+library_name: sentence-transformers
+pipeline_tag: feature-extraction
+base_model: intfloat/multilingual-e5-small
+model_name: Yoonyoul/fine-tuned-e5-small-drugproduct
+model_type: sentence-transformer
+---
+
 # 🧬 Fine-tuned E5-small for Korean Drug Product Semantic Embedding
 
 ## 📘 Model Overview
-이 모델은 **[intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small)** 기반으로,
-의약품 요약·상세 데이터(`drug_summary`, `drug_details`) 및 제품 유형 정의(`drug_type_definition`)를 활용하여
+이 모델은 **[intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small)** 기반으로,  
+의약품 요약·상세 데이터(`drug_summary`, `drug_details`) 및 제품 유형 정의(`drug_type_definition`)를 활용하여  
 한국어 의약품 도메인에 맞게 **2단계 파인튜닝(fine-tuning)** 된 버전입니다.
 
 ### 🔹 1단계: Drug Type Semantic Alignment
-- 데이터셋: `drug_type_def_list.csv`
+- 데이터셋: `drug_type_def_list.csv`  
 - 목표: `"해열제" → "체온을 낮추는 약"` 과 같은 개념 매핑 학습  
 - 모델 결과: `/tunning/model/fine_tuned_e5_small_drugtype`
 
 ### 🔹 2단계: Drug Product Semantic Alignment
-- 데이터셋: `drug_product_similarity_train.csv` (약 3,000건 샘플)
-- 목표: `"판콜에이내복액"` 같은 실제품과 `"열을 내리는 약"` 같은 질의 간 의미 매칭 강화  
+- 데이터셋: `drug_product_similarity_train.csv` (약 3,000건 샘플)  
+- 목표: `"판콜에이내복액"` 같은 실제 제품과 `"열을 내리는 약"` 같은 질의 간 의미 매칭 강화  
 - 모델 결과: `/tunning/model/fine_tuned_e5_small_drugproduct`
 
 ---
@@ -22,7 +40,7 @@
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer("ryukato/fine-tuned-e5-small-drugproduct")
+model = SentenceTransformer("Yoonyoul/fine-tuned-e5-small-drugproduct")
 
 query = "열을 내리는 약은?"
 docs = [
@@ -72,9 +90,9 @@ fine-tuned-e5-small-drugmodel/
 ---
 
 ## 📅 Release Info
-- Author: **@ryukato**
+- Author: **@Yoonyoul**
 - Base Model: `intfloat/multilingual-e5-small`
-- Fine-tuned Model: `fine_tuned_e5_small_drugproduct`
+- Fine-tuned Model: `Yoonyoul/fine-tuned-e5-small-drugproduct`
 - Last Updated: **2025-10-27**
 
 ---
