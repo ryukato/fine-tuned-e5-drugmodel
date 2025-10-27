@@ -1,0 +1,92 @@
+# ----------------------------------------
+# Python / Virtual Environment
+# ----------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+*.log
+
+# ----------------------------------------
+# Jupyter / IPython
+# ----------------------------------------
+.ipynb_checkpoints
+*.ipynb_convert*
+*.ipynb_meta*
+*.ipynb_revert*
+
+# ----------------------------------------
+# OS / Editor Specific
+# ----------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+
+# ----------------------------------------
+# Hugging Face / Model Files
+# ----------------------------------------
+# exclude local model directories from commit
+tunning/model/
+model/
+checkpoints/
+outputs/
+results/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+
+# ----------------------------------------
+# Data Files
+# ----------------------------------------
+# exclude raw and generated training data
+data/*.csv
+data/*.json
+*.zip
+*.tar.gz
+
+# ----------------------------------------
+# Cache / Temp
+# ----------------------------------------
+__pycache__/
+.cache/
+.huggingface/
+datasets/
+logs/
+tmp/
+temp/
+
+# ----------------------------------------
+# Python / HuggingFace specific
+# ----------------------------------------
+*.env
+.env.*
+.envrc
+pip-wheel-metadata/
+*.egg-info/
+*__pycache__*
+
+# ----------------------------------------
+# Project-specific
+# ----------------------------------------
+# ignore auto-generated readme/req from utilities
+utilities/model_cards/
+utilities/requirements.txt
+
+# keep these tracked
+!README.md
+!requirements.txt
