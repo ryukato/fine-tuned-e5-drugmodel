@@ -37,7 +37,7 @@
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer("ryukato/fine-tuned-e5-small-drugproduct")
+model = SentenceTransformer("Yoonyoul/fine-tuned-e5-small-drugproduct")
 
 query = "열을 내리는 약은?"
 docs = [
@@ -120,6 +120,6 @@ If you use this model or training setup, please cite:
   author = {Yoon Y. Yoo},
   title = {Fine-tuned E5-small for Korean Drug Product Semantic Embedding},
   year = {2025},
-  url = {https://huggingface.co/ryukato/fine-tuned-e5-small-drugproduct}
+  url = {https://huggingface.co/Yoonyoul/fine-tuned-e5-small-drugproduct}
 }
 ```
