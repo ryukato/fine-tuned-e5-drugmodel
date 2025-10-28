@@ -9,6 +9,8 @@
 **3단계 파인튜닝(fine-tuning)** 과정을 통해,  
 질의("열을 내리는 약은?", "임산부가 복용하면 안 되는 약은?")와 제품명("판콜에이내복액", "아목사펜캡슐") 사이의 의미적 유사도를 학습합니다.
 
+[Model on HuggingFace](https://huggingface.co/Yoonyoul/fine-tuned-e5-small-drugproduct)
+
 ---
 
 ## 🧩 3-Step Fine-tuning Pipeline
