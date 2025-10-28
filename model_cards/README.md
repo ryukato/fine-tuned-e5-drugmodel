@@ -20,8 +20,8 @@ model_type: sentence-transformer
 
 ## 📘 Model Overview
 이 모델은 **[intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small)** 기반으로,  
-의약품 요약·상세 데이터(`drug_summary`, `drug_details`) 및 제품 유형 정의(`drug_type_definition`)를 활용하여  
-한국어 의약품 도메인에 맞게 **2단계 파인튜닝(fine-tuning)** 된 SentenceTransformer 모델입니다.
+의약품 요약·상세 데이터(`drug_summary`, `drug_details`) 및 제품 유형 정의(`drug_type_definition`), DUR 규제 정의(`drug_dur_type_definition`)를 활용하여  
+한국어 의약품 도메인에 맞게 **3단계 파인튜닝(fine-tuning)** 된 SentenceTransformer 모델입니다.
 
 - GitHub Repository: [https://github.com/ryukato/fine-tuned-e5-drugmodel](https://github.com/ryukato/fine-tuned-e5-drugmodel)
 
@@ -29,7 +29,7 @@ model_type: sentence-transformer
 
 ## 🧩 Base Model Selection Rationale
 
-이 프로젝트는 다국어 환경에서도 **의약품 명칭, 효능, 제형 등의 복잡한 의미 관계를 정확히 임베딩**하기 위해  
+이 프로젝트는 다국어 환경에서도 **의약품 명칭, 효능, DUR 규제의 복잡한 의미 관계를 정확히 임베딩**하기 위해  
 **E5(multilingual-E5)** 계열 모델 중 `intfloat/multilingual-e5-small`을 선택했습니다.
 
 선정 이유는 다음과 같습니다:
@@ -51,15 +51,20 @@ model_type: sentence-transformer
 
 ---
 
-## 🔹 1단계: Drug Type Semantic Alignment
+## 🔹 Step 1: Drug Type Semantic Alignment
 - 데이터셋: `drug_type_def_list.csv`  
 - 목표: `"해열제" → "체온을 낮추는 약"` 과 같은 개념 매핑 학습  
-- 모델 결과: `/tunning/model/fine_tuned_e5_small_drugtype`
+- 모델 결과: `/model/fine_tuned_e5_small_drugtype`
 
-### 🔹 2단계: Drug Product Semantic Alignment
+### 🔹 Step 2: DUR Type Semantic Alignment
+- 데이터셋: `drug_dur_type_similarity_train.csv`  
+- 목표: `"임부금기"`, `"노인주의"`, `"병용금기"` 등 DUR 타입과 전문적 설명 간 의미 매핑 학습  
+- 모델 결과: `/model/fine_tuned_e5_small_drugdurtype`
+
+### 🔹 Step 3: Drug Product Semantic Alignment
 - 데이터셋: `drug_product_similarity_train.csv` (약 3,000건 샘플)  
 - 목표: `"판콜에이내복액"` 같은 실제 제품과 `"열을 내리는 약"` 같은 질의 간 의미 매칭 강화  
-- 모델 결과: `/tunning/model/fine_tuned_e5_small_drugproduct`
+- 모델 결과: `/model/fine_tuned_e5_small_drugproduct_accum`
 
 ---
 
@@ -100,28 +105,9 @@ for doc, score in zip(docs, scores):
 
 ---
 
-## 🧩 Directory Structure
-
-```
-fine-tuned-e5-small-drugmodel/
-├── data/
-│   └── drug_product_similarity_train.csv
-├── scripts/
-│   ├── train_drug_type_e5_small.py
-│   ├── train_drug_product_e5_small.py
-│   └── infer_example.py
-├── model_cards/
-│   └── README.md
-└── requirements.txt
-```
-
----
-
 ## 📅 Release Info
 - Author: **@Yoonyoul**
 - Base Model: `intfloat/multilingual-e5-small`
 - Fine-tuned Model: `Yoonyoul/fine-tuned-e5-small-drugproduct`
 - Repository: [https://github.com/ryukato/fine-tuned-e5-drugmodel](https://github.com/ryukato/fine-tuned-e5-drugmodel)
 - Last Updated: **2025-10-27**
-
----

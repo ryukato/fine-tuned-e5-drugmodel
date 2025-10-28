@@ -1,37 +1,36 @@
-# file: tunning/train_drug_product_accum.py
 import os
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
-from sentence_transformers import losses
 from tqdm import tqdm
-from sentence_transformers import SentenceTransformer, InputExample, util
 import pandas as pd
+from sentence_transformers import SentenceTransformer, InputExample, util
 
 # ----------------------------------------------------------------------
 # 1. 경로 설정
 # ----------------------------------------------------------------------
-# 현재 파일 기준 한 단계 위 (scripts → root)
-base_dir = os.path.dirname(os.path.abspath(__file__))  # 루트에서 실행 시에도 안전
+base_dir = os.path.dirname(os.path.abspath(__file__))
 if os.path.basename(base_dir) == "scripts":
     base_dir = os.path.dirname(base_dir)
 
 data_dir = os.path.join(base_dir, "data")
-train_csv = os.path.join(data_dir, "drug_product_similarity_train.csv")
+train_csv = os.path.join(data_dir, "drug_dur_type_similarity_train.csv")
 
-base_model_path = os.path.join(base_dir, "model", "fine_tuned_e5_small_drugdurtype")
-output_model_path = os.path.join(base_dir, "model", "fine_tuned_e5_small_drugproduct_accum")
+base_model_path = os.path.join(base_dir, "model", "fine_tuned_e5_small_drugtype")
+output_model_path = os.path.join(base_dir, "model", "fine_tuned_e5_small_drugdurtype")
 os.makedirs(output_model_path, exist_ok=True)
-print(f"train_csv={train_csv}, output_model_path={output_model_path}")
+
+print(f"📂 train_csv={train_csv}")
+print(f"📦 base_model={base_model_path}")
+print(f"💾 output_model_path={output_model_path}")
 
 # ----------------------------------------------------------------------
 # 2. 환경 설정
 # ----------------------------------------------------------------------
 os.environ["PYTORCH_MPS_DISABLE"] = "1"
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
-
 device = "cpu"
+
 if torch.backends.mps.is_available():
     torch.mps.empty_cache()
     print("⚙️ MPS available but using CPU for stability.")
@@ -43,16 +42,17 @@ model = SentenceTransformer(base_model_path, device=device)
 model.max_seq_length = 256
 
 # ----------------------------------------------------------------------
-# 4. 데이터 로드 및 토크나이즈
+# 4. 데이터 로드
 # ----------------------------------------------------------------------
 df = pd.read_csv(train_csv)
 size = len(df)
+print(f"✅ Loaded {size} samples for training")
+
 
 # 안전한 샘플링
 if size > 3000:
     df = df.sample(3000, random_state=42)
     size = len(df)
-    print(f"📉 Sampled 3000 rows (original={len(df)}).")
 else:
     print(f"⚠️ Data smaller than 3000 rows — using full dataset ({size} rows).")
 
@@ -68,6 +68,11 @@ else:
 
 print(f"✅ Loaded {size} samples for training (epochs={epochs})")
 
+train_examples = [
+    InputExample(texts=[row.dur_type, row.description], label=float(row.label))
+    for row in df.itertuples()
+]
+
 def collate_fn(batch):
     texts1 = [ex.texts[0] for ex in batch]
     texts2 = [ex.texts[1] for ex in batch]
@@ -76,47 +81,32 @@ def collate_fn(batch):
     features2 = model.tokenize(texts2)
     return features1, features2, labels
 
-
-train_examples = [
-    InputExample(texts=[row.query, row.context], label=float(row.label))
-    for row in df.itertuples()
-]
-
 train_dataloader = DataLoader(
-    train_examples,
-    shuffle=True,
-    batch_size=2,
-    num_workers=0,
-    collate_fn=collate_fn,
+    train_examples, shuffle=True, batch_size=2, num_workers=0, collate_fn=collate_fn
 )
 
 # ----------------------------------------------------------------------
-# 5. Loss, Optimizer
+# 5️. Optimizer
 # ----------------------------------------------------------------------
-train_loss = losses.CosineSimilarityLoss(model)
 optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 accum_steps = 4
 
 # ----------------------------------------------------------------------
-# 6. 학습 루프
+# 6️. 학습 루프
 # ----------------------------------------------------------------------
-from torch.nn import functional as F
 model.train()
 for epoch in range(epochs):
     total_loss = 0
     optimizer.zero_grad()
-
     print(f"\n🚀 Epoch {epoch+1}/{epochs} 시작")
-    for step, (features1, features2, labels) in enumerate(tqdm(train_dataloader, leave=False)):
+
+    for step, (features1, features2, labels) in enumerate(tqdm(train_dataloader)):
         features1 = {k: v.to(device) for k, v in features1.items()}
         features2 = {k: v.to(device) for k, v in features2.items()}
         labels = labels.to(device)
 
         emb1 = model.forward(features1)["sentence_embedding"]
         emb2 = model.forward(features2)["sentence_embedding"]
-
-        emb1 = F.normalize(emb1)
-        emb2 = F.normalize(emb2)
 
         cos_sim = torch.cosine_similarity(emb1, emb2)
         loss = torch.nn.functional.mse_loss(cos_sim, labels)
@@ -128,23 +118,24 @@ for epoch in range(epochs):
             optimizer.step()
             optimizer.zero_grad()
 
-    avg_loss = total_loss / len(train_dataloader)
-    print(f"✅ Epoch {epoch+1} 완료 | 평균 손실: {avg_loss:.6f}")
+    print(f"✅ Epoch {epoch+1} 완료 | 평균 손실: {total_loss / len(train_dataloader):.6f}")
 
 # ----------------------------------------------------------------------
-# 7. 모델 저장
+# 7.  모델 저장
 # ----------------------------------------------------------------------
 model.save(output_model_path)
 print(f"\n✅ Fine-tuning 완료 → {output_model_path}")
 
 # ----------------------------------------------------------------------
-# 8. 간단 검증
+# 8️. 검증 샘플
 # ----------------------------------------------------------------------
-query = "열을 내리는 약은?"
+query = "임산부가 복용하면 위험한 약"
 emb_q = model.encode(query, convert_to_tensor=True)
-emb_cands = model.encode(df["context"].head(10).tolist(), convert_to_tensor=True)
+emb_cands = model.encode(df["description"].tolist(), convert_to_tensor=True)
 scores = util.cos_sim(emb_q, emb_cands)[0]
 
-print("\n🔍 샘플 유사도 결과:")
-for i, s in enumerate(scores):
-    print(f"{df['query'].iloc[i][:40]} → {s.item():.4f}")
+top_k = 3
+print(f"\n🔍 '{query}' 상위 {top_k} 결과:")
+for i in range(top_k):
+    idx = torch.argsort(scores, descending=True)[i].item()
+    print(f"{df.iloc[idx]['dur_type']} → {scores[idx].item():.4f}")
